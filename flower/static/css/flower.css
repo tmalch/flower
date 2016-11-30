@@ -229,3 +229,13 @@
   width: 100%;
   display: inline-block;
 }
+
+.bgclass1 > td{
+    background-color: #effff2 !important;
+}
+.bgclass2 > td {
+    background-color: #fffbee !important;
+}
+.bgclass3 > td {
+    background-color: #ededff !important;
+}

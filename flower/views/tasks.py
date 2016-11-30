@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import sys
 import copy
 import logging
-
+import itertools
 try:
     from itertools import imap
 except ImportError:
@@ -15,7 +15,8 @@ from ..views import BaseHandler
 from ..utils.tasks import iter_tasks, get_task_by_id, as_dict
 
 logger = logging.getLogger(__name__)
-
+from celery.events.state import Task
+from celery.result import AsyncResult
 
 class TaskView(BaseHandler):
     @web.authenticated
@@ -29,6 +30,8 @@ class TaskView(BaseHandler):
 
 
 class TasksDataTable(BaseHandler):
+    parents = {}
+
     @web.authenticated
     def get(self):
         app = self.application
@@ -40,6 +43,7 @@ class TasksDataTable(BaseHandler):
         column = self.get_argument('order[0][column]', type=int)
         sort_by = self.get_argument('columns[%s][data]' % column, type=str)
         sort_order = self.get_argument('order[0][dir]', type=str) == 'asc'
+        do_grouping = self.get_argument('grouping', type=bool)
 
         def key(item):
             val = getattr(item[1], sort_by)
@@ -47,9 +51,41 @@ class TasksDataTable(BaseHandler):
                 val = str(val)
             return val
 
-        tasks = sorted(iter_tasks(app.events, search=search),
-                       key=key, reverse=sort_order)
+        def add_hierarchy(args):
+            uuid, task = args
+            if not hasattr(task, "hierarchy"):
+                hierarchy = ascendants(task.uuid)
+                task.hierarchy = hierarchy
+                task._fields = task._fields + ('hierarchy',)
+            return uuid, task
+
+        def ascendants(uuid):
+            asc = [uuid]
+            while uuid != self.parents.get(uuid, uuid):
+                asc.append(self.parents.get(uuid, uuid))
+                uuid = self.parents.get(uuid, uuid)
+            return asc
+
+        tasks = iter_tasks(app.events, search=search)
+        if do_grouping:
+            for uuid, task in iter_tasks(app.events):
+                aresult = AsyncResult(uuid)
+                for child in aresult.children:
+                    self.parents[child.id] = uuid
+            tasks = map(add_hierarchy, tasks)
+
+            groups = []
+            tasks = sorted(tasks, key=lambda args: args[1].hierarchy[-1])
+            for root_uuid, group in itertools.groupby(tasks, key=lambda args: args[1].hierarchy[-1]):
+                groups.append(sorted(group, key=lambda args: len(args[1].hierarchy)))
+
+            # sort groups by root element
+            groups = sorted(groups, key=lambda group: key(group[0]), reverse=sort_order)
+            tasks = itertools.chain.from_iterable(groups)
+        else:
+            tasks = sorted(tasks, key=key, reverse=sort_order)
         tasks = list(map(self.format_task, tasks))
+
         filtered_tasks = []
         i = 0
         for _, task in tasks:
@@ -59,6 +95,8 @@ class TasksDataTable(BaseHandler):
             if i >= (start + length):
                 break
             task = as_dict(task)
+            if 'hierarchy' in task:
+                task['hierarchy'] = "{}_{}".format(task['hierarchy'][-1], len(task['hierarchy']) - 1)
             if task['worker']:
                 task['worker'] = task['worker'].hostname
             filtered_tasks.append(task)

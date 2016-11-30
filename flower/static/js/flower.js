@@ -745,7 +745,7 @@ var flower = (function () {
         if ($.inArray($(location).attr('pathname'), [url_prefix() + '/', url_prefix() + '/dashboard', url_prefix() + '/broker', url_prefix() + '/monitor']) !== -1) {
             return;
         }
-
+        var classes = ["bgclass1","bgclass2","bgclass3"];
         $('#tasks-table').DataTable({
             rowId: 'uuid',
             searching: true,
@@ -756,7 +756,10 @@ var flower = (function () {
             serverSide: true,
             colReorder: true,
             ajax: {
-                url: url_prefix() + '/tasks/datatable'
+                url: url_prefix() + '/tasks/datatable',
+                data: function ( params ) {
+                    params.grouping = $('#grouping').prop('checked') ;
+                }
             },
             order: [
                 [7, "asc"]
@@ -764,11 +767,32 @@ var flower = (function () {
             oSearch: {
                 "sSearch": $.urlParam('state') ? 'state:' + $.urlParam('state') : ''
             },
-            columnDefs: [{
+            drawCallback: function ( settings ) {
+                var api = this.api();
+                var last_root=null;
+                var index = 0;
+                if($('#grouping').prop('checked')) {
+                    // assign a different class to rows with different root
+                    api.rows({page: 'current'}).every(function () {
+                        var this_root = this.data().hierarchy.split("_")[0];
+                        if (last_root !== this_root) {
+                            index = (index + 1) % classes.length;
+                            last_root = this_root;
+                        }
+                        $(this.node()).addClass(classes[index]);
+                    });
+                }
+            },
+            columnDefs: [ {
                 targets: 0,
                 data: 'name',
                 visible: isColumnVisible('name'),
                 render: function (data, type, full, meta) {
+                    if($('#grouping').prop('checked') && full.hierarchy){
+                        var h = full.hierarchy.split("_");
+                        var depth = parseInt(h[1]);
+                        return "|"+" -- ".repeat(depth)+data;
+                    }
                     return data;
                 }
             }, {
@@ -867,7 +891,6 @@ var flower = (function () {
                 visible: isColumnVisible('eta')
             }, ],
         });
-
     });
 
     return {

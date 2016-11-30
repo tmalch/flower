@@ -10,7 +10,7 @@
 <input type="hidden" value="{{ columns }}" id='columns'>
 
 <div class="container-fluid">
-
+<div class="form-inline"><label for="grouping">Group by Hierarchy</label> <input type="checkbox" id="grouping" onclick="$('#tasks-table').dataTable().api().ajax.reload()" checked></div>
   <table id="tasks-table" class="table table-bordered table-striped">
     <thead>
     <tr>
