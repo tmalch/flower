@@ -21,7 +21,13 @@ var flower = (function () {
         $("#alert-message").html("<strong>Success!</strong>    " + message);
         $("#alert").show();
     }
-
+    function limit_text_length(text, len){
+        if (text && text.length > len) {
+            var hidden = "<p class='full' style='display: none' onclick='$(this).hide();$(this).siblings(\"p.header\").show();'>"+text+"</p>";
+            return hidden+"<p class='header'>"+text.slice(0,2)+"<a onclick='$(this).closest(\"p.header\").siblings(\"p.full\").show();$(this).closest(\"p.header\").hide();'>...</a>"+"</p>"
+        }
+        return text;
+    }
     function get_selected_workers() {
         var table = $('#workers-table').DataTable();
         return $.map(table.rows('.selected').data(), function (row) {
@@ -820,15 +826,24 @@ var flower = (function () {
             }, {
                 targets: 3,
                 data: 'args',
-                visible: isColumnVisible('args')
+                visible: isColumnVisible('args'),
+                render: function (data, type, full, meta) {
+                    return limit_text_length(data, 15);
+                }
             }, {
                 targets: 4,
                 data: 'kwargs',
-                visible: isColumnVisible('kwargs')
+                visible: isColumnVisible('kwargs'),
+                render: function (data, type, full, meta) {
+                    return limit_text_length(data, 15);
+                }
             }, {
                 targets: 5,
                 data: 'result',
-                visible: isColumnVisible('result')
+                visible: isColumnVisible('result'),
+                render: function (data, type, full, meta) {
+                    return limit_text_length(data, 25);
+                }
             }, {
                 targets: 6,
                 data: 'received',
