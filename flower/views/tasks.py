@@ -17,6 +17,7 @@ from ..utils.tasks import iter_tasks, get_task_by_id, as_dict
 logger = logging.getLogger(__name__)
 from celery.events.state import Task
 from celery.result import AsyncResult
+import html
 
 class TaskView(BaseHandler):
     @web.authenticated
@@ -70,8 +71,13 @@ class TasksDataTable(BaseHandler):
         if do_grouping:
             for uuid, task in iter_tasks(app.events):
                 aresult = AsyncResult(uuid)
-                for child in aresult.children:
-                    self.parents[child.id] = uuid
+                for parent, child in aresult.iterdeps(intermediate=True):
+                    if isinstance(child, AsyncResult) and isinstance(parent, AsyncResult):
+                            self.parents[child.id] = parent.id
+                # for child in aresult.children or []:
+                #     if isinstance(child, AsyncResult):
+                #             self.parents[child.id] = uuid
+
             tasks = map(add_hierarchy, tasks)
 
             groups = []
@@ -99,6 +105,9 @@ class TasksDataTable(BaseHandler):
                 task['hierarchy'] = "{}_{}".format(task['hierarchy'][-1], len(task['hierarchy']) - 1)
             if task['worker']:
                 task['worker'] = task['worker'].hostname
+            for k,v in task.items():
+                if isinstance(v, str):
+                    task[k] = html.escape(v)
             filtered_tasks.append(task)
             i += 1
 

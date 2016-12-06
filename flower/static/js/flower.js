@@ -24,7 +24,7 @@ var flower = (function () {
     function limit_text_length(text, len){
         if (text && text.length > len) {
             var hidden = "<p class='full' style='display: none' onclick='$(this).hide();$(this).siblings(\"p.header\").show();'>"+text+"</p>";
-            return hidden+"<p class='header'>"+text.slice(0,2)+"<a onclick='$(this).closest(\"p.header\").siblings(\"p.full\").show();$(this).closest(\"p.header\").hide();'>...</a>"+"</p>"
+            return hidden+"<p class='header'>"+text.slice(0,100)+"<a onclick='$(this).closest(\"p.header\").siblings(\"p.full\").show();$(this).closest(\"p.header\").hide();'>...</a>"+"</p>"
         }
         return text;
     }
@@ -828,21 +828,21 @@ var flower = (function () {
                 data: 'args',
                 visible: isColumnVisible('args'),
                 render: function (data, type, full, meta) {
-                    return limit_text_length(data, 15);
+                    return limit_text_length(data, 150);
                 }
             }, {
                 targets: 4,
                 data: 'kwargs',
                 visible: isColumnVisible('kwargs'),
                 render: function (data, type, full, meta) {
-                    return limit_text_length(data, 15);
+                    return limit_text_length(data, 150);
                 }
             }, {
                 targets: 5,
                 data: 'result',
                 visible: isColumnVisible('result'),
                 render: function (data, type, full, meta) {
-                    return limit_text_length(data, 25);
+                    return limit_text_length(data, 250);
                 }
             }, {
                 targets: 6,
