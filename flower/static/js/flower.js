@@ -697,7 +697,7 @@ var flower = (function () {
             paginate: false,
             select: true,
             scrollX: true,
-            scrollY: 500,
+            scrollY: true,
             scrollCollapse: true,
             order: [
                 [1, "asc"]
@@ -834,8 +834,18 @@ var flower = (function () {
                 targets: 4,
                 data: 'kwargs',
                 visible: isColumnVisible('kwargs'),
-                render: function (data, type, full, meta) {
-                    return limit_text_length(data, 150);
+                render: function (data) {
+                   var entityMap = {
+                      '&': '&amp;',
+                      '<': '&lt;',
+                      '>': '&gt;',
+                      '"': '&quot;',
+                      '\'': '&#39;',
+                      '/': '&#x2F;'
+                  };
+                  return limit_text_length(data.replace(/[&<>"'\/]/g, function (s) {
+                      return entityMap[s];
+                  }), 150);
                 }
             }, {
                 targets: 5,
@@ -906,6 +916,7 @@ var flower = (function () {
                 visible: isColumnVisible('eta')
             }, ],
         });
+
     });
 
     return {
